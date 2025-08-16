@@ -1,0 +1,366 @@
+---
+title: "302_final"
+output: html_document
+---
+
+```{r}
+library(NHANES)
+df <- data("NHANES")  # Load the dataset into your environment
+head(NHANES)    # View the first few rows
+summary(NHANES)
+```
+
+```{r}
+counts <- table(NHANES$TVHrsDay, useNA = "ifany")  # count each category
+barplot(counts,
+        col = "lightblue",
+        main = "Tv hours per day",
+        xlab = "Category",
+        ylab = "Count")
+```
+
+```{r}
+counts <- table(NHANES$SmokeAge, useNA = "ifany")  # count each category
+barplot(counts,
+        col = "lightblue",
+        main = "Age started to Smoke",
+        xlab = "Category",
+        ylab = "Count")
+```
+
+```{r}
+counts <- table(NHANES$AlcoholYear, useNA = "ifany")  # count each category
+barplot(counts,
+        col = "lightblue",
+        main = "Age started to Smoke",
+        xlab = "Category",
+        ylab = "Count")
+```
+
+
+```{r}
+NHANES$MarijScore <- with(NHANES, ifelse(Marijuana == "No", "Never",
+                                    ifelse(RegularMarij == "Yes", "Frequently", "Sometimes")))
+```
+
+```{r}
+# Create dummy variables
+NHANES$MarijSometimes    <- ifelse(NHANES$MarijScore == "Sometimes", 1, 0)
+NHANES$MarijFrequently   <- ifelse(NHANES$MarijScore == "Frequently", 1, 0)
+
+# Check first few rows
+head(NHANES[, c("MarijScore", "MarijSometimes", "MarijFrequently")])
+
+```
+
+
+```{r}
+NHANES$SmokeScore <- with(NHANES,
+  ifelse(is.na(SmokeNow), "Never",
+    ifelse(SmokeNow == "No", "Before",
+      ifelse(SmokeNow == "Yes", "Regular", NA)
+    )
+  )
+)
+```
+
+```{r}
+# Create dummy variables
+NHANES$SmokeBefore    <- ifelse(NHANES$SmokeScore == "Before", 1, 0)
+NHANES$SmokeRegular   <- ifelse(NHANES$SmokeScore == "Regular", 1, 0)
+
+# Check first few rows
+head(NHANES[, c("SmokeScore", "SmokeBefore", "SmokeRegular")])
+
+```
+
+
+```{r}
+# Create dummy variables
+NHANES$depressedSeveral    <- ifelse(NHANES$Depressed == "Several", 1, 0)
+NHANES$depressedMost   <- ifelse(NHANES$Depressed == "Most", 1, 0)
+
+# Check first few rows
+head(NHANES[, c("Depressed", "depressedSeveral", "depressedMost")])
+
+```
+
+```{r}
+# Create dummy variables
+NHANES$SexOrientationHomo    <- ifelse(NHANES$SexOrientation == "Homosexual", 1, 0)
+NHANES$SexOrientationBi   <- ifelse(NHANES$SexOrientation == "Bisexual", 1, 0)
+
+# Check first few rows
+head(NHANES[, c("SexOrientation", "SexOrientationHomo", "SexOrientationBi")])
+
+```
+
+
+```{r}
+
+# Create dummy variables
+NHANES$LittleInterestSeveral <- ifelse(NHANES$LittleInterest == "Several", 1, 0)
+NHANES$LittleInterestMost   <- ifelse(NHANES$LittleInterest == "Most", 1, 0)
+
+
+# Check first few rows
+head(NHANES[, c("LittleInterest", "LittleInterestSeveral", "LittleInterestMost")])
+```
+
+```{r}
+NHANES$SleepTroubleDummy <- ifelse(NHANES$SleepTrouble == "Yes", 1, 0)
+NHANES$PhysActiveDummy <- ifelse(NHANES$PhysActive == "Yes", 1, 0)
+NHANES$SexEverDummy <- ifelse(NHANES$SexEver == "Yes", 1, 0)
+NHANES$HardDrugsDummy <- ifelse(NHANES$HardDrugs == "Yes", 1, 0)
+NHANES$SameSexDummy <- ifelse(NHANES$SameSex == "Yes", 1, 0)
+NHANES$Alcohol12PlusYrDummy <- ifelse(NHANES$Alcohol12PlusYr == "Yes", 1, 0)
+
+```
+
+
+```{r}
+# Columns to keep
+cols_to_keep <- c(
+  "Age", "BMI", "depressedSeveral", "depressedMost", "SleepHrsNight", "SleepTroubleDummy","ID",
+  "PhysActiveDummy", "LittleInterestSeveral", "LittleInterestMost",
+  "Alcohol12PlusYrDummy",
+  "SmokeBefore","SmokeRegular",
+  "MarijSometimes", "MarijFrequently",
+  "HardDrugsDummy", "SexEverDummy", "SexNumPartnLife", "SexNumPartYear",
+  "SameSexDummy", "SexOrientationHomo", "SexOrientationBi"
+)
+
+# Step 1: Keep only listed columns (only those that exist in the dataset)
+cols_present <- intersect(cols_to_keep, names(NHANES))
+NHANES_selected <- NHANES[ , cols_present]
+
+# Step 2: Filter for age between 18 and 59
+NHANES_filtered <- NHANES_selected[NHANES_selected$Age >= 18 & 
+                                   NHANES_selected$Age <= 59, ]
+
+# Step 3: Remove rows with any NA in the selected columns
+NHANES_clean <- unique(NHANES_filtered[complete.cases(NHANES_filtered), ])
+
+# Optional: Check results
+dim(NHANES_clean)             # Rows and columns after cleaning
+colSums(is.na(NHANES_clean))  # Should be all zero
+
+dim(NHANES_filtered)             # Rows and columns after cleaning
+colSums(is.na(NHANES_filtered))
+```
+
+```{r}
+df <- read.csv("final_clean.csv")
+summary(df)
+```
+
+```{r}
+library(car)
+model <- lm(BMI ~ depressedSeveral + depressedMost + SleepHrsNight + SleepTroubleDummy + SmokeBefore + PhysActiveDummy + LittleInterestMost + LittleInterestSeveral + Alcohol12PlusYrDummy + SmokeRegular + MarijFrequently + MarijSometimes + HardDrugsDummy + SexEverDummy + SexOrientationHomo + SexOrientationBi + SexNumPartnLife + SexNumPartYear + SameSexDummy, data = df)
+summary(model)
+vif(model)
+```
+
+```{r}
+plot(model$fitted.values, resid(model),
+     xlab = "Fitted values", ylab = "Residuals",
+     main = "Residuals vs. Fitted",
+     pch = 1,
+     col = "black",
+     bty = "l")
+
+abline(h = 0, col = "red", lwd = 2)
+```
+
+```{r}
+qqnorm(residuals(model), main = "Q-Q Plot of MLR Residuals", bty = "l")
+qqline(residuals(model), col = "red", lwd = 2)
+```
+
+```{r}
+stud <- rstudent(model)
+stud_thr <- 3 
+
+lev <- hatvalues(model)
+n <- nrow(model$model)
+p <- length(coef(model))
+lev_thr <- 2 * p / n 
+
+cook <- cooks.distance(model)
+cook_thr <- 4 / (n-2)
+
+diag_tbl <- data.frame(
+  obs        = as.integer(rownames(model$model)),  # row indices in your data
+  stud_resid = stud,
+  leverage   = lev,
+  cooksD     = cook,
+  flag_resid = abs(stud) > stud_thr,
+  flag_lev   = lev > lev_thr,
+  flag_cook  = cook > cook_thr
+)
+diag_tbl$any_flag <- with(diag_tbl, flag_resid | flag_lev | flag_cook)
+
+head(diag_tbl[order(-diag_tbl$cooksD), ], 15)  # top 15 by Cook's D
+subset(diag_tbl, any_flag)
+```
+
+```{r}
+# Get original row numbers used in the model
+model_rows <- as.integer(rownames(model$model))
+
+# Get which of those rows are flagged
+flagged_rows <- model_rows[diag_tbl$any_flag]
+
+# Create a new data frame with only valid points
+df_valid <- df[!(seq_len(nrow(df)) %in% flagged_rows), ]
+
+# Check result
+nrow(df_valid)    # number of valid rows
+head(df_valid)
+```
+
+```{r}
+model_valid <- lm(BMI ~ depressedSeveral + depressedMost + SleepHrsNight + SleepTroubleDummy + SmokeBefore + PhysActiveDummy + LittleInterestMost + LittleInterestSeveral + Alcohol12PlusYrDummy + SmokeRegular + MarijFrequently + MarijSometimes + HardDrugsDummy + SexEverDummy + SexNumPartnLife + SexNumPartYear + SameSexDummy, data = df_valid)
+
+vif(model_valid)
+
+summary(model_valid)
+
+# Load MASS package
+library(MASS)
+
+# Box–Cox transformation plot
+boxcox(model_valid, lambda = seq(-2, 2, 0.1))
+
+# Add a vertical line at the best lambda
+bc <- boxcox(model_valid, lambda = seq(-2, 2, 0.1))
+lambda_best <- bc$x[which.max(bc$y)]
+abline(v = lambda_best, col = "red")
+
+lambda_best
+```
+
+```{r}
+y_bc <- if (abs(lambda_best) < 1e-8) {
+  log(df_valid$BMI)                           # λ ≈ 0 → log transform
+} else {
+  (df_valid$BMI^lambda_best - 1) / lambda_best}
+
+model_valid_transformed <- lm(y_bc ~ depressedSeveral + depressedMost + SleepHrsNight + SleepTroubleDummy + SmokeBefore + PhysActiveDummy + LittleInterestMost + LittleInterestSeveral + Alcohol12PlusYrDummy + SmokeRegular + MarijFrequently + MarijSometimes + HardDrugsDummy + SexEverDummy + SexNumPartnLife + SexNumPartYear + SameSexDummy,
+               data = df_valid)
+
+summary(model_valid_transformed)
+```
+
+```{r}
+plot(model_valid_transformed$fitted.values, resid(model_valid_transformed),
+     xlab = "Fitted values", ylab = "Residuals",
+     main = "Residuals vs. Fitted",
+     pch = 1,
+     col = "black",
+     bty = "l")
+
+abline(h = 0, col = "red", lwd = 2)
+```
+
+```{r}
+qqnorm(residuals(model_valid_transformed), main = "Q-Q Plot of MLR Residuals", bty = "l")
+qqline(residuals(model_valid_transformed), col = "red", lwd = 2)
+```
+
+```{r}
+# Backward BIC
+aic_model <- step(model_valid_transformed, direction = "backward", k = 2, trace = 0)
+bic_model <- step(model_valid_transformed, direction = "backward", k = log(nobs(model_valid_transformed)), trace = 0)
+
+anova(aic_model, model_valid_transformed)
+anova(bic_model, model_valid_transformed)
+
+final_model <- bic_model  
+
+vif(final_model)                  
+summary(final_model)$adj.r.squared
+AIC(final_model)
+BIC(final_model)
+```
+
+```{r}
+summary(final_model)
+```
+
+```{r}
+plot(final_model$fitted.values, resid(final_model),
+     xlab = "Fitted values", ylab = "Residuals",
+     main = "Residuals vs. Fitted",
+     pch = 1,
+     col = "black",
+     bty = "l")
+
+abline(h = 0, col = "red", lwd = 2)
+```
+
+
+```{r}
+df_valid$SleepTroubleDummy <- factor(df_valid$SleepTroubleDummy,
+                               levels = c(0, 1),
+                               labels = c("No", "Yes"))
+boxplot(resid(final_model) ~ SleepTroubleDummy, data = df_valid,
+        main = "Boxplot of Residual by SleepTrouble",
+        xlab = "SleepTrouble",
+        ylab = "Residual",
+        col = c("lightblue", "pink"))
+
+counts <- table(df_valid$SleepTroubleDummy)
+barplot(counts,
+        col = "skyblue",
+        main = "SleepTrouble Counts",
+        xlab = "Category",
+        ylab = "Count")
+```
+
+```{r}
+df_valid$PhysActiveDummy <- factor(df_valid$PhysActiveDummy,
+                               levels = c(0, 1),
+                               labels = c("No", "Yes"))
+boxplot(resid(final_model) ~ PhysActiveDummy, data = df_valid,
+        main = "Boxplot of Residual by PhysActive",
+        xlab = "PhysActive",
+        ylab = "Residual",
+        col = c("lightblue", "pink"))
+
+counts <- table(df_valid$PhysActiveDummy)
+barplot(counts,
+        col = "skyblue",
+        main = "Physical Active Counts",
+        xlab = "Category",
+        ylab = "Count")
+```
+
+```{r}
+df_valid$SmokeRegular <- factor(df_valid$SmokeRegular,
+                               levels = c(0, 1),
+                               labels = c("No", "Yes"))
+boxplot(resid(final_model) ~ SmokeRegular, data = df_valid,
+        main = "Boxplot of Residual by SmokeRegular",
+        xlab = "SmokeRegular",
+        ylab = "Residual",
+        col = c("lightblue", "pink"))
+
+counts <- table(df_valid$SmokeRegular)
+barplot(counts,
+        col = "skyblue",
+        main = "Smoke Regular counts",
+        xlab = "Category",
+        ylab = "Count")
+```
+
+
+```{r}
+qqnorm(residuals(final_model), main = "Q-Q Plot of MLR Residuals", bty = "l")
+qqline(residuals(final_model), col = "red", lwd = 2)
+```
+
+```{r}
+vif(final_model)
+```
+
